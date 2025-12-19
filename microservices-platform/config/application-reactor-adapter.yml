@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: reactor-adapter-service
+
+  kafka:
+    bootstrap-servers: kafka:9092
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.veldev: DEBUG

@@ -1,0 +1,49 @@
+# Build directories
+build/
+.gradle/
+out/
+target/
+bin/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store
+
+# Docker
+*.log
+logs/
+docker-compose.override.yml
+
+# Gradle
+.gradle-wrapper/
+gradle-app.setting
+
+# Node
+node_modules/
+npm-debug.log
+
+# OS
+Thumbs.db
+
+# Application
+application.properties
+application.yml
+/config/application*.yml
+
+# Runtime data
+*.pid
+*.seed
+*.pid.lock
+
+# Secrets
+.env
+secrets/
+credentials/
+
+# Temporary files
+tmp/
+temp/

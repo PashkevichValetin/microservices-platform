@@ -1,0 +1,157 @@
+version: '3.8'
+
+services:
+  # ========== ИНФРАСТРУКТУРА ==========
+  
+  # Postgres для Data Unifier
+  postgres-data:
+    image: postgres:15-alpine
+    container_name: postgres-data-db
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d user_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # MySQL для Data Unifier
+  mysql-orders:
+    image: mysql:8.0
+    container_name: mysql-orders-db
+    environment:
+      MYSQL_DATABASE: order_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # Kafka инфраструктура
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-broker
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  
+  # Postgres для Dmonitorapp
+  postgres-monitor:
+    image: postgres:15-alpine
+    container_name: postgres-monitor-db
+    environment:
+      POSTGRES_DB: monitor_db
+      POSTGRES_USER: monitor_user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_monitor_data:/var/lib/postgresql/data
+      - ../dmonitorapp/src/main/resources/data.sql:/docker-entrypoint-initdb.d/data.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U monitor_user -d monitor_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  # ========== СЕРВИСЫ ==========
+  
+  # 1. Data Unifier Service
+  data-unifier:
+    build:
+      context: ../data-unifier
+      dockerfile: Dockerfile
+    container_name: data-unifier-service
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres-data:
+        condition: service_healthy
+      mysql-orders:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      # Конфигурация для Docker сети
+      POSTGRES_HOST: postgres-data
+      MYSQL_HOST: mysql-orders
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    volumes:
+      - ./config/application-data-unifier.yml:/app/config/application.yml:ro
+  
+  # 2. Reactor Adapter Kit
+  reactor-adapter:
+    build:
+      context: ../reactor-adapter-kit
+      dockerfile: Dockerfile
+    container_name: reactor-adapter-service
+    ports:
+      - "8082:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    volumes:
+      - ./config/application-reactor-adapter.yml:/app/config/application.yml:ro
+  
+  # 3. Dmonitorapp
+  dmonitorapp:
+    build:
+      context: ../dmonitorapp
+      dockerfile: Dockerfile
+    container_name: monitoring-service
+    ports:
+      - "8083:8080"
+    depends_on:
+      postgres-monitor:
+        condition: service_healthy
+      data-unifier:
+        condition: service_started
+      reactor-adapter:
+        condition: service_started
+    environment:
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres-monitor:5432/monitor_db
+      MONITORED_SERVICES: "data-unifier:8081,reactor-adapter:8082"
+    volumes:
+      - ./config/application-dmonitorapp.yml:/app/config/application.yml:ro
+
+volumes:
+  postgres_data:
+  mysql_data:
+  postgres_monitor_data:

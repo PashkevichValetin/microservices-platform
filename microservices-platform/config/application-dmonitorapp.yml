@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: dmonitorapp
+
+  r2dbc:
+    url: r2dbc:postgresql://postgres-monitor:5432/monitor_db
+    username: monitor_user
+    password: pass
+
+server:
+  port: 8080
+
+monitoring:
+  services:
+    - name: Data Unifier
+      url: http://data-unifier:8080/api/v1/test/health
+      type: HTTP
+      interval: 30
+    - name: Reactor Adapter
+      url: http://reactor-adapter:8080/api/stocks/health
+      type: HTTP
+      interval: 30
+
+logging:
+  level:
+    root: INFO
+    com.pashkevich: DEBUG

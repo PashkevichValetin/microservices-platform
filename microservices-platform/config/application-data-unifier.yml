@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: data-unifier-service
+
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: universal-aggregator
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  datasource:
+    url: jdbc:postgresql://postgres-data:5432/user_db?ssl=false
+    username: app_user
+    password: password
+
+app:
+  kafka:
+    topic:
+      unified-customers: unified-customers
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.pashcevich: DEBUG
+mysql:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://mysql-orders:3306/order_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: app_user
+    password: password
+
+postgres:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://postgres-data:5432/user_db?ssl=false
+    username: app_user
+    password: password
