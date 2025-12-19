@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "🔍 Checking Microservices Platform..."
+echo "Checking Microservices Platform..."
 echo ""
 
 echo "Docker containers:"
