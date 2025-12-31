@@ -1,4 +1,4 @@
 #!/bin/bash
-echo "🛑 Stopping Microservices Platform..."
+echo "Stopping Microservices Platform..."
 docker-compose down
-echo "✅ All services stopped"
+echo "All services stopped"
