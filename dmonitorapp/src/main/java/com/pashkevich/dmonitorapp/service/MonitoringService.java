@@ -6,6 +6,7 @@ import com.pashkevich.dmonitorapp.adapter.http.HttpHealthAdapter;
 import com.pashkevich.dmonitorapp.model.CheckType;
 import com.pashkevich.dmonitorapp.model.HealthCheckResult;
 import com.pashkevich.dmonitorapp.model.ServiceDefinition;
+import com.pashkevich.dmonitorapp.repository.DatabaseConnectionRepository;
 import com.pashkevich.dmonitorapp.repository.HealthCheckResultRepository;
 import com.pashkevich.dmonitorapp.repository.ServiceDefinitionRepository;
 import jakarta.annotation.PostConstruct;
@@ -24,8 +25,10 @@ public class MonitoringService {
 
     private final ServiceDefinitionRepository serviceDefinitionRepository;
     private final HealthCheckResultRepository healthCheckResultRepository;
+    private final DatabaseConnectionRepository databaseConnectionRepository;
     private final HttpHealthAdapter httpHealthAdapter;
     private final DatabaseHealthAdapter databaseHealthAdapter;
+
     private Map<CheckType, HealthCheckAdapter> adapters;
 
     @PostConstruct
@@ -41,11 +44,7 @@ public class MonitoringService {
         log.info("Запуск проверок здоровья сервисов...");
 
         return serviceDefinitionRepository.findAll()
-                .doOnNext(service -> log.info("Проверка сервиса: id={}, name={}",
-                        service.getId(), service.getName())) // ← Логируем ID
                 .flatMap(this::performCheckByType)
-                .doOnNext(result -> log.info("Результат проверки: serviceId={}, status={}",
-                        result.getServiceDefinitionId(), result.getStatus())) // ← Логируем результат
                 .flatMap(healthCheckResultRepository::save)
                 .then(Mono.just("Проверки успешно завершены"))
                 .onErrorResume(error -> {

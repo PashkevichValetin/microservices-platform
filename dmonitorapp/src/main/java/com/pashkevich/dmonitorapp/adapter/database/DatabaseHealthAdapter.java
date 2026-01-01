@@ -22,20 +22,15 @@ public class DatabaseHealthAdapter implements HealthCheckAdapter {
     private final DatabaseConnectionRepository databaseConnectionRepository;
 
     @Override
-    public CheckType getType() {
-        return CheckType.DATABASE;
-    }
-
-    @Override
     public Mono<HealthCheckResult> checkHealth(ServiceDefinition service) {
-        if (service.getDatabaseConfigId() == null) {
-            log.warn("Пропуск DB проверки для сервиса без databaseConfigId: id={}, name={}",
-                    service.getId(), service.getName());
-            return Mono.empty();
-        }
         return databaseConnectionRepository.findById(service.getDatabaseConfigId())
                 .flatMap(config -> testConnectionReactive(service, config))
                 .onErrorResume(error -> createErrorResult(service, error));
+    }
+
+    @Override
+    public CheckType getType() {
+        return CheckType.DATABASE;
     }
 
     private Mono<HealthCheckResult> testConnectionReactive(ServiceDefinition service, DatabaseConnectionConfig config) {

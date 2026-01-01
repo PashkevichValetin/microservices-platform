@@ -31,7 +31,7 @@ public class DatabaseHealthController {
         return databaseConnectionRepository.save(connection);
     }
 
-    @PutMapping("/connections/{id}")
+    @PutMapping("/connectons/{id}")
     public Mono<DatabaseConnectionConfig> updateConnection(
             @PathVariable Long id,
             @RequestBody DatabaseConnectionConfig connection) {

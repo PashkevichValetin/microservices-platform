@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+spring:
+
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5434/monitor_db
+    username: monitor_user
+    password: pass
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:data.sql
+      data-locations: classpath:data.sql
+
+

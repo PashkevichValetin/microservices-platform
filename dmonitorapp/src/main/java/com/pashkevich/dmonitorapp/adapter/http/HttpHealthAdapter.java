@@ -23,21 +23,21 @@ public class HttpHealthAdapter implements HealthCheckAdapter {
     private final WebClient webClient;
 
     @Override
-    public Mono<HealthCheckResult> checkHealth(ServiceDefinition service) {
+    public Mono<HealthCheckResult> checkHealth(ServiceDefinition serviceDefinition) {
         Instant start = Instant.now();
         LocalDateTime checkTime = LocalDateTime.now();
 
         return webClient.get()
-                .uri(service.getUrl())
+                .uri(serviceDefinition.getUrl())
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, clientResponse ->
                         Mono.error(new RuntimeException("Http Error: " + clientResponse.statusCode()))
                 )
                 .bodyToMono(String.class)
-                .map(response -> createSuccessResult(service, start, checkTime))
+                .map(response -> createSuccessResult(serviceDefinition, start, checkTime))
                 .timeout(Duration.ofSeconds(10))
                 .onErrorResume(throwable ->
-                        Mono.just(createErrorResult(service, start,checkTime, throwable))
+                        Mono.just(createErrorResult(serviceDefinition, start,checkTime, throwable))
                 );
     }
 
@@ -84,8 +84,6 @@ public class HttpHealthAdapter implements HealthCheckAdapter {
         }
         return error.getMessage();
     }
-
-
 }
 
 

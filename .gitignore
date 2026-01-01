@@ -1,9 +1,9 @@
-# Build directories
+# Build
 build/
 .gradle/
 out/
-target/
 bin/
+target/
 
 # IDE
 .idea/
@@ -13,37 +13,28 @@ bin/
 .vscode/
 .DS_Store
 
-# Docker
-*.log
-logs/
-docker-compose.override.yml
-
-# Gradle
-.gradle-wrapper/
-gradle-app.setting
-
-# Node
-node_modules/
-npm-debug.log
-
 # OS
 Thumbs.db
 
-# Application
-application.properties
-application.yml
-/config/application*.yml
+# Application logs
+*.log
+logs/
 
-# Runtime data
-*.pid
-*.seed
-*.pid.lock
+# Dependency directories
+node_modules/
 
 # Secrets
 .env
 secrets/
 credentials/
 
-# Temporary files
+# Temporary
 tmp/
 temp/
+
+# Project specific (не добавлять чужие .gitignore)
+data-unifier/.gitignore
+dmonitorapp/.gitignore  
+reactor-adapter-kit/.gitignore
+data-unifier/.gitattributes
+reactor-adapter-kit/.gitattributes

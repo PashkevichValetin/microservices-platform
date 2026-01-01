@@ -6,6 +6,6 @@ import com.pashkevich.dmonitorapp.model.ServiceDefinition;
 import reactor.core.publisher.Mono;
 
 public interface HealthCheckAdapter {
-    public Mono<HealthCheckResult> checkHealth(ServiceDefinition service);
+    public Mono<HealthCheckResult> checkHealth(ServiceDefinition serviceDefinition);
     public CheckType getType();
 }

@@ -2,6 +2,9 @@ package com.pashkevich.dmonitorapp.model;
 
 public enum CheckType {
     HTTP,
-    DATABASE
+    DATABASE,
+    KAFKA,
+    TCP,
+    CUSTOM
 }
 

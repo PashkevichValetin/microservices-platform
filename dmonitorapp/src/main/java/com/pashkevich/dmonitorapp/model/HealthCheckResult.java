@@ -22,7 +22,7 @@ public class HealthCheckResult {
     @Id
     private Long id;
     @Column("service_definition_id")
-//    @NotNull(message = "Service ID cannot be null")
+    @NotNull(message = "Service ID cannot be null")
     private Long serviceDefinitionId;
 
     @Column("checked_at")
