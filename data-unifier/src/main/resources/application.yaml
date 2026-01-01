@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: data-unifier-service
+
+  kafka:
+    bootstrap-servers: localhost:9092  # ВАЖНО: используйте localhost
+    admin:
+      fail-fast: false  # Не падать если Kafka недоступен
+    consumer:
+      group-id: universal-aggregator
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-startup: false  # Не стартовать автоматически
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# MySQL
+mysql:
+  datasource:
+    url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: app_user
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# PostgreSQL
+postgres:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/user_db?ssl=false
+    username: app_user
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+# App configuration
+app:
+  kafka:
+    topic:
+      unified-customers: unified-customers
+
+  scheduler:
+    enabled: true
+    unification:
+      cron: "0 */5 * * * *"
+
+  batch:
+    size: 100
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.pashcevich: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
