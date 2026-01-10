@@ -28,19 +28,23 @@ public class DataUnificationService {
             List<UnifiedCustomerDto> users = postgresUserAdapter.getAllUserForUnification();
             log.info("Found {} users for unification", users.size());
 
-            users.forEach(user -> {
-                try {
-                    List<UnifiedCustomerDto.OrderData> orders = mySQLOrderAdapter
-                            .getOrdersByUserId(user.getUserId());
-                    user.setOrders(orders);
-                    log.debug("User ID {} has {} orders", user.getUserId(), orders.size());
-
-                    unifiedDataProducer.sendUnifiedCustomer(user);
-                } catch (Exception e) {
-                    log.error("Failed to process orders for user ID {}: {}",
-                            user.getUserId(), e.getMessage(), e);
-                }
-            });
+            System.out.println("DEBUG: Processing " + users.size() + " users");
+        users.forEach(user -> {
+    System.out.println("DEBUG: Processing user ID: " + user.getUserId());
+    try {
+        List<UnifiedCustomerDto.OrderData> orders = mySQLOrderAdapter
+                .getOrdersByUserId(user.getUserId());
+        System.out.println("DEBUG: User ID " + user.getUserId() + " has " + orders.size() + " orders");
+        user.setOrders(orders);
+        
+        // Тест: просто логируем вместо отправки в Kafka
+        System.out.println("DEBUG: Would send to Kafka: " + user);
+        unifiedDataProducer.sendUnifiedCustomer(user);
+    } catch (Exception e) {
+        System.err.println("ERROR: " + e.getMessage());
+        e.printStackTrace();
+    }
+});
             log.info("Data unification completed successfully. Processed {} users.", users.size());
         } catch (Exception e) {
             log.error("Data unification process failed: {}", e.getMessage(), e);
@@ -64,7 +68,7 @@ public class DataUnificationService {
             log.debug("Found user: {}", user.getEmail());
 
             // 2. Получаем заказы - исправляем опечатку в имени переменной
-            List<UnifiedCustomerDto.OrderData> orders = mySQLOrderAdapter // правильно mySQLOrderAdapter
+            List<UnifiedCustomerDto.OrderData> orders = mySQLOrderAdapter 
                     .getOrdersByUserId(userId);
 
             user.setOrders(orders);
@@ -78,7 +82,6 @@ public class DataUnificationService {
                 // Продолжаем выполнение
             }
 
-            // 4. Исправляем опечатку в логе
             log.info("Successfully unified data for user ID: {}. Orders found: {}",
                     userId, orders.size());
 

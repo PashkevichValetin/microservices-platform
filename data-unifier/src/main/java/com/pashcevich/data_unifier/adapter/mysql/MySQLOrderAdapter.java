@@ -15,18 +15,32 @@ public class MySQLOrderAdapter {
 
     private final OrderRepository orderRepository;
 
-    public List<UnifiedCustomerDto.OrderData> getOrdersByUserId(Long userId) {
-        return orderRepository.findByUserId(userId).stream()
-                .map(this::convertToOrderData)
-                .toList();
+  public List<UnifiedCustomerDto.OrderData> getOrdersByUserId(Long userId) {
+    System.out.println("=== DEBUG MySQLOrderAdapter ===");
+    System.out.println("Searching orders for user ID: " + userId);
+    
+    List<OrderEntity> orders = orderRepository.findByUserId(userId);
+    System.out.println("Found " + orders.size() + " orders");
+    
+    if (orders.isEmpty()) {
+        System.out.println("WARNING: No orders found for user ID: " + userId);
+    } else {
+        orders.forEach(order -> 
+            System.out.println("Order ID: " + order.getId() + ", Amount: " + order.getAmount())
+        );
     }
+    
+    return orders.stream()
+            .map(this::convertToOrderData)
+            .toList();
+}
 
-    private UnifiedCustomerDto.OrderData convertToOrderData(OrderEntity order) {
-        UnifiedCustomerDto.OrderData orderData = new UnifiedCustomerDto.OrderData();
-        orderData.setOrderId(order.getId());
-        orderData.setAmount(order.getAmount());
-        orderData.setStatus(order.getStatus());
-        orderData.setCreatedAt(order.getCreatedAt());
-        return orderData;
-    }
+private UnifiedCustomerDto.OrderData convertToOrderData(OrderEntity order) {
+    UnifiedCustomerDto.OrderData orderData = new UnifiedCustomerDto.OrderData();
+    orderData.setOrderId(order.getId());
+    orderData.setAmount(order.getAmount());
+    orderData.setStatus(order.getStatus());
+    orderData.setCreatedAt(order.getCreatedAt());
+    return orderData;
+}
 }

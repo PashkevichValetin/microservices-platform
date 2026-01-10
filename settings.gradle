@@ -1,1 +1,9 @@
-rootProject.name = 'dmonitorapp'
+rootProject.name = 'microservices-platform'
+
+include 'data-unifier'
+include 'reactor-adapter-kit'
+include 'dmonitorapp'
+
+project(':data-unifier').projectDir = file('data-unifier')
+project(':reactor-adapter-kit').projectDir = file('reactor-adapter-kit')
+project(':dmonitorapp').projectDir = file('dmonitorapp')

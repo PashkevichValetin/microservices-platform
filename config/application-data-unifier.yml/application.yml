@@ -3,7 +3,7 @@ spring:
     name: data-unifier-service
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
     admin:
       fail-fast: false
     consumer:
@@ -14,27 +14,33 @@ spring:
       auto-startup: false
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      # Выберите один из вариантов:
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer  # для JSON
-      # value-serializer: org.apache.kafka.common.serialization.StringSerializer  # для строк
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     properties:
       spring.json.type.mapping: unifiedCustomerDto:com.pashcevich.data_unifier.adapter.kafka.producer.dto.UnifiedCustomerDto
 
-# MySQL
+# MySQL с увеличенными timeout
 mysql:
   datasource:
-    url: jdbc:mysql://localhost:3307/order_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://mysql-orders:3306/order_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=30000&socketTimeout=30000
     username: app_user
     password: password
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 5
 
 # PostgreSQL
 postgres:
   datasource:
-    url: jdbc:postgresql://localhost:5433/user_db?ssl=false
+    url: jdbc:postgresql://postgres-data:5432/user_db?ssl=false&connectTimeout=30&socketTimeout=30
     username: app_user
     password: password
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 5
 
 # App configuration
 app:
@@ -59,7 +65,6 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-# Actuator Configuration
 management:
   endpoint:
     health:

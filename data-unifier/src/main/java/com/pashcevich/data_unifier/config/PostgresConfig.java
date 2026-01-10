@@ -82,12 +82,12 @@ public class PostgresConfig {
         em.setJpaVendorAdapter(vendorAdapter);
 
         HashMap<String, Object> properties = new HashMap<>();
-        // ИЗМЕНИТЬ validate на update!
+        
         properties.put("jakarta.persistence.schema-generation.database.action", "update");
         properties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         properties.put("hibernate.show_sql", true);
         properties.put("hibernate.format_sql", true);
-        properties.put("hibernate.hbm2ddl.auto", "update");  // ИЗМЕНИТЬ!
+        properties.put("hibernate.hbm2ddl.auto", "update"); 
         em.setJpaPropertyMap(properties);
 
         return em;

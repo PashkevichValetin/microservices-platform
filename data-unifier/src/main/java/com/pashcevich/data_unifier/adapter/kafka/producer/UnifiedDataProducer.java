@@ -21,6 +21,7 @@ public class UnifiedDataProducer {
     private String unifiedCustomersTopic;
 
     public void sendUnifiedCustomer(UnifiedCustomerDto customer) {
+        System.out.println("🔵 KAFKA DEBUG: Attempting to send user " + customer.getUserId() + " to topic: " + unifiedCustomersTopic);
         try {
             String key = String.valueOf(customer.getUserId());
 

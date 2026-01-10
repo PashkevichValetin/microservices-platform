@@ -16,17 +16,24 @@ import java.util.Map;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class DataUnifierHealthIndicator implements HealthIndicator {
 
-    @Qualifier("mysqlDataSource")
     private final DataSource mysqlDataSource;
-
-    @Qualifier("postgresDataSource")
     private final DataSource postgresDataSource;
-
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+
+    public DataUnifierHealthIndicator(
+            @Qualifier("mysqlDataSource") DataSource mysqlDataSource,
+            @Qualifier("postgresDataSource") DataSource postgresDataSource,
+            UserRepository userRepository,
+            OrderRepository orderRepository
+    ) {
+        this.mysqlDataSource = mysqlDataSource;
+        this.postgresDataSource = postgresDataSource;
+        this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
+    }
 
     @Override
     public Health health() {

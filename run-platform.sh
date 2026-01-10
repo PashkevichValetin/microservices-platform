@@ -15,7 +15,7 @@ echo "   ✓ reactor-adapter-kit собран"
 
 echo ""
 echo "=== Запуск платформы ==="
-cd ../microservices-platform
+cd .
 docker-compose up -d --build
 
 echo ""

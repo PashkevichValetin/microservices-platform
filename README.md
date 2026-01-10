@@ -57,3 +57,13 @@ The platform includes automated health checks that run every 30 seconds. Results
 
 MIT
 # microservices-platform
+
+## Новая структура (2026)
+- `data-unifier/` - Сервис объединения данных
+- `reactor-adapter-kit/` - Реактивный адаптер  
+- `dmonitorapp/` - Мониторинг
+- `config/` - Конфигурации Docker
+- `scripts/` - Вспомогательные скрипты
+
+## Запуск:
+./run-platform.sh

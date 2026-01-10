@@ -10,5 +10,4 @@ server:
 
 logging:
   level:
-    root: INFO
     com.veldev: DEBUG
