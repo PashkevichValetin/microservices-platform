@@ -1,0 +1,9 @@
+[submodule "data-unifier"]
+	path = data-unifier
+	url = https://github.com/PashkevichValetin/data-unifier.git
+[submodule "dmonitorapp"]
+	path = dmonitorapp
+	url = https://github.com/PashkevichValetin/dmonitorapp.git
+[submodule "reactor-adapter-kit"]
+	path = reactor-adapter-kit
+	url = https://github.com/PashkevichValetin/reactor-adapter-kit.git
