@@ -1,11 +1,29 @@
 # Microservices Platform
 
+## План сборки оркестра
+
+1. **Фаза 1: Каркас**
+   - [ ] Добавить Gateway на 8080
+   - [ ] Настроить прокси на data-unifier (8081)
+   - [ ] Подключить dmonitorapp к проверке всех сервисов
+
+2. **Фаза 2: Связи**
+   - [ ] Настроить топики Kafka: `stock.request` и `stock.response`
+   - [ ] Data Unifier → пишет в `stock.request`
+   - [ ] Reactor Adapter → читает из `stock.request`, пишет в `stock.response`
+   - [ ] Data Unifier → читает из `stock.response`
+
+3. **Фаза 3: Безопасность**
+   - [ ] Добавить Keycloak в docker-compose
+   - [ ] Настроить Gateway на проверку токенов
+   - [ ] Защитить эндпоинты
+
 A complete microservices platform with monitoring, data processing, and event-driven architecture.
 
 ## Architecture
 
 - **data-unifier**: Data aggregation and processing service
-- **reactor-adapter**: Reactive event processing service  
+- **reactor-adapter**: Reactive event processing service
 - **dmonitorapp**: Monitoring and health checking service
 - **Kafka**: Message broker for event-driven communication
 - **PostgreSQL**: Primary database (2 instances)
@@ -41,7 +59,7 @@ A complete microservices platform with monitoring, data processing, and event-dr
 - Health: `GET /api/v1/test/health`
 - Port: 8081
 
-### Reactor Adapter  
+### Reactor Adapter
 - Health: `GET /api/stocks/health`
 - Port: 8082
 
@@ -56,11 +74,12 @@ The platform includes automated health checks that run every 30 seconds. Results
 ## License
 
 MIT
+
 # microservices-platform
 
 ## Новая структура (2026)
 - `data-unifier/` - Сервис объединения данных
-- `reactor-adapter-kit/` - Реактивный адаптер  
+- `reactor-adapter-kit/` - Реактивный адаптер
 - `dmonitorapp/` - Мониторинг
 - `config/` - Конфигурации Docker
 - `scripts/` - Вспомогательные скрипты
