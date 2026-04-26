@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres-data:
     image: postgres:15-alpine
@@ -81,12 +79,15 @@ services:
     command: start-dev
     networks:
       - platform-net
+<<<<<<< HEAD
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/health/live" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+=======
+>>>>>>> fa1ed447965ae09a56c05c3153d5b3a44524796d
 
   data-unifier:
     build: ./data-unifier
@@ -130,6 +131,7 @@ services:
       MONITORED_SERVICES: "data-unifier:8081,reactor-adapter:8082"
     networks:
       - platform-net
+<<<<<<< HEAD
 
   gateway:
     build:
@@ -154,3 +156,32 @@ services:
 networks:
     platform-net:
       driver: bridge
+=======
+
+  gateway:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8088:8080"
+    depends_on:
+      - redis
+      - keycloak
+    environment:
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/master
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: false
+    networks:
+      - platform-net
+
+volumes:
+  postgres_data:
+  mysql_data:
+  postgres_monitor_data:
+
+networks:
+  platform-net:
+    driver: bridge
+>>>>>>> fa1ed447965ae09a56c05c3153d5b3a44524796d
