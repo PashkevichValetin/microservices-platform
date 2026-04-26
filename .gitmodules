@@ -7,3 +7,6 @@
 [submodule "reactor-adapter-kit"]
 	path = reactor-adapter-kit
 	url = https://github.com/PashkevichValetin/reactor-adapter-kit.git
+[submodule "gateway-service"]
+	path = gateway-service
+	url = https://github.com/PashkevichValetin/gateway-service.git
