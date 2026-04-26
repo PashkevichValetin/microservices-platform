@@ -3,7 +3,9 @@ rootProject.name = 'microservices-platform'
 include 'data-unifier'
 include 'reactor-adapter-kit'
 include 'dmonitorapp'
+include 'gateway-service'
 
 project(':data-unifier').projectDir = file('data-unifier')
 project(':reactor-adapter-kit').projectDir = file('reactor-adapter-kit')
 project(':dmonitorapp').projectDir = file('dmonitorapp')
+project(':gateway-service').projectDir = file('gateway-service')

@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   postgres-data:
     image: postgres:15-alpine
@@ -81,12 +80,6 @@ services:
     command: start-dev
     networks:
       - platform-net
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health/live" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
   data-unifier:
     build: ./data-unifier
@@ -131,6 +124,7 @@ services:
     networks:
       - platform-net
 
+    driver: bridge
   gateway:
     build:
       context: ./gateway-service
@@ -144,13 +138,7 @@ services:
     environment:
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://keycloak:8080/realms/master"
-      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: "false"
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak:8080/realms/master/protocol/openid-connect/certs"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/master
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: false
     networks:
       - platform-net
-
-
-networks:
-    platform-net:
-      driver: bridge
