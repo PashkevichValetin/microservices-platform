@@ -10,6 +10,11 @@ services:
       POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d user_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - platform-net
 
@@ -23,6 +28,12 @@ services:
       MYSQL_ROOT_PASSWORD: root_password
     ports:
       - "3306:3306"
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "app_user", "-ppassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - platform-net
 
@@ -31,6 +42,10 @@ services:
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 5s
+      retries: 5
     networks:
       - platform-net
 
@@ -38,14 +53,19 @@ services:
     image: confluentinc/cp-kafka:7.4.0
     container_name: kafka-broker
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      retries: 5
     networks:
       - platform-net
 
@@ -58,6 +78,9 @@ services:
       POSTGRES_PASSWORD: pass
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U monitor_user -d monitor_db"]
+      interval: 5s
     networks:
       - platform-net
 
@@ -79,14 +102,13 @@ services:
     ports:
       - "8080:8080"
     command: start-dev
-    networks:
-      - platform-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 10
+    networks:
+      - platform-net
 
   data-unifier:
     build: ./data-unifier
@@ -94,21 +116,25 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      - postgres-data
-      - mysql-orders
-      - kafka
+      mysql-orders:
+        condition: service_healthy
+      postgres-data:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - MYSQL_DATASOURCE_URL=jdbc:mysql://mysql-orders-db:3306/order_db
-      - MYSQL_DATASOURCE_USERNAME=app_user
-      - MYSQL_DATASOURCE_PASSWORD=password
-      - POSTGRES_DATASOURCE_URL=jdbc:postgresql://postgres-data-db:5432/user_db
-      - POSTGRES_DATASOURCE_USERNAME=app_user
-      - POSTGRES_DATASOURCE_PASSWORD=password
-
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_PROFILES_ACTIVE=prod
+      # Решаем проблему placeholder:
+      - mysql.datasource.url=jdbc:mysql://mysql-orders-db:3306/order_db
+      - mysql.datasource.username=app_user
+      - mysql.datasource.password=password
+      - postgres.datasource.url=jdbc:postgresql://postgres-data-db:5432/user_db
+      - postgres.datasource.username=app_user
+      - postgres.datasource.password=password
+      - kafka.bootstrap.servers=kafka-broker:9092
     networks:
       - platform-net
+    restart: always
 
   reactor-adapter:
     build: ./reactor-adapter-kit
@@ -116,11 +142,13 @@ services:
     ports:
       - "8082:8080"
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BOOTSTRAP_SERVERS: kafka-broker:9092
     networks:
       - platform-net
+    restart: always
 
   dmonitorapp:
     build: ./dmonitorapp
@@ -128,12 +156,13 @@ services:
     ports:
       - "8083:8080"
     depends_on:
-      - postgres-monitor
-      - data-unifier
-      - reactor-adapter
+      postgres-monitor:
+        condition: service_healthy
+      data-unifier:
+        condition: service_started
     environment:
-      SPRING_R2DBC_URL: r2dbc:postgresql://postgres-monitor:5432/monitor_db
-      MONITORED_SERVICES: "data-unifier:8081,reactor-adapter:8082"
+      SPRING_R2DBC_URL: r2dbc:postgresql://postgres-monitor-db:5432/monitor_db
+      MONITORED_SERVICES: "data-unifier-service:8081,reactor-adapter-service:8082"
     networks:
       - platform-net
 
@@ -145,14 +174,15 @@ services:
     ports:
       - "8088:8080"
     depends_on:
-      - redis
-      - keycloak
+      redis:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
     environment:
       SPRING_REDIS_HOST: redis-cache
       SPRING_REDIS_PORT: 6379
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://keycloak-auth:8080/realms/master"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak-auth:8080/realms/master/protocol/openid-connect/certs"
-      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: "false"
     networks:
       - platform-net
 
