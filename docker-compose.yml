@@ -98,9 +98,15 @@ services:
       - mysql-orders
       - kafka
     environment:
-      POSTGRES_HOST: postgres-data
-      MYSQL_HOST: mysql-orders
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      - SPRING_PROFILES_ACTIVE=dev
+      - MYSQL_DATASOURCE_URL=jdbc:mysql://mysql-orders-db:3306/order_db
+      - MYSQL_DATASOURCE_USERNAME=app_user
+      - MYSQL_DATASOURCE_PASSWORD=password
+      - POSTGRES_DATASOURCE_URL=jdbc:postgresql://postgres-data-db:5432/user_db
+      - POSTGRES_DATASOURCE_USERNAME=app_user
+      - POSTGRES_DATASOURCE_PASSWORD=password
+
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     networks:
       - platform-net
 
