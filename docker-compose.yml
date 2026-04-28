@@ -57,7 +57,7 @@ services:
         condition: service_healthy
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
@@ -131,7 +131,7 @@ services:
       - postgres.datasource.url=jdbc:postgresql://postgres-data-db:5432/user_db
       - postgres.datasource.username=app_user
       - postgres.datasource.password=password
-      - kafka.bootstrap.servers=kafka-broker:9092
+      - kafka.bootstrap.servers=kafka:29092
     networks:
       - platform-net
     restart: always
