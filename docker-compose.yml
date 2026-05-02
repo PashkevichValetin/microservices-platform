@@ -20,6 +20,8 @@ services:
     networks:
       - platform-net
 
+
+
   mysql-orders:
     image: mysql:8.0
     container_name: mysql-orders-db
@@ -117,6 +119,28 @@ services:
       retries: 10
     networks:
       - platform-net
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - platform-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Пароль для входа
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - platform-net
 
   data-unifier:
     build: ./data-unifier
@@ -197,3 +221,9 @@ services:
 networks:
   platform-net:
     driver: bridge
+
+volumes:
+  postgres_data:
+  mysql_data:
+  prometheus_data:
+  grafana_data:
