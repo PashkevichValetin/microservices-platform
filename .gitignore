@@ -36,3 +36,5 @@ logs/
 # Temp files
 tmp/
 temp/
+postgres_data/
+mysql_data/
