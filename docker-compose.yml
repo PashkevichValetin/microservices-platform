@@ -196,10 +196,19 @@ services:
       data-unifier:
         condition: service_started
     environment:
+      - SPRING_PROFILES_ACTIVE=prod
       - SPRING_R2DBC_URL=r2dbc:postgresql://postgres-monitor-db:5432/monitor_db
+      - SPRING_R2DBC_USER=monitor_user
+      - SPRING_R2DBC_PASSWORD=pass
+      - SPRING_SQL_INIT_MODE=never
       - MONITORED_SERVICES=data-unifier-service:8081,reactor-adapter-service:8082
     networks:
-      - platform-net
+      platform-net:
+        aliases:
+          - monitoring-service
+    restart: always
+
+
 
   gateway:
     build:
