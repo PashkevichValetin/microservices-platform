@@ -1,0 +1,40 @@
+server:
+  port: 8080
+  address: 0.0.0.0
+  compression:
+    enabled: true
+    mime-types: text/event-stream,text/html,text/css,application/javascript
+
+spring:
+  application:
+    name: reactor-adapter-service
+  webflux:
+    static-path-pattern: /**
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus"
+  endpoint:
+    prometheus:
+      enabled: true
+  health:
+    show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.veldev.reactor_adapter_kit: INFO
+    org.springframework.web: INFO
+    org.springframework.boot.actuate: INFO
+    reactor.netty: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%15.15t] %-40.40logger{39} : %msg%n"
+

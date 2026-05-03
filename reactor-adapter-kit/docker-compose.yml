@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  reactor-adapter-service:
+    build:
+      context: ./reactor-adapter-kit # Убедись, что путь к папке верный
+      dockerfile: Dockerfile
+    container_name: reactor-adapter-service
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Europe/Moscow
+      # Явно прописываем адрес Kafka, чтобы не было ошибки localhost
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker:29092
+    volumes:
+      - ./logs/reactor:/app/logs
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - platform-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+

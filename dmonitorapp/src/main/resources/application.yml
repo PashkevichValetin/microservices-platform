@@ -1,0 +1,57 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: dmonitorapp
+  # Убираем sql: init: mode: always отсюда!
+  task:
+    scheduling:
+      pool:
+        size: 10
+    execution:
+      pool:
+        size: 10
+      queue-capacity: 100
+      thread-name-prefix: "monitoring-"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+  endpoint:
+    prometheus:
+      enabled: true
+  health:
+    show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  sql:
+    init:
+      mode: always # В dev пусть ищет скрипты
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5433/monitor_db
+    username: ${SPRING_R2DBC_USER:monitor_user}
+    password: ${SPRING_R2DBC_PASSWORD:pass}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  sql:
+    init:
+      mode: never # В prod выключаем, так как скриптов в JAR нет
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://postgres-monitor-db:5432/monitor_db}
+    username: ${SPRING_R2DBC_USER:monitor_user}
+    password: ${SPRING_R2DBC_PASSWORD:pass}

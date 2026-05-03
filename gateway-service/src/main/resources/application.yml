@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: gateway-service
+  redis:
+    # Используем переменную, по умолчанию для Docker
+    host: ${REDIS_HOST:redis-cache}
+    port: ${REDIS_PORT:6379}
+  cloud:
+    gateway:
+      routes:
+        - id: monitor-route
+          # Внутри Docker сети используем имя сервиса
+          uri: ${MONITORING_SERVICE_URL:http://monitoring-service:8080}
+          predicates:
+            - Path=/monitor/**
+        - id: data-route
+          uri: ${DATA_UNIFIER_SERVICE_URL:http://data-unifier-service:8080}
+          predicates:
+            - Path=/data/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Добавлены метрики и prometheus
+        include: health, info, gateway, prometheus, metrics
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+server:
+  port: 8080
+
+

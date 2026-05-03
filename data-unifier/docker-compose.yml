@@ -1,0 +1,227 @@
+version: '3.8'
+
+services:
+  # --- ИНФРАСТРУКТУРА: БАЗЫ ДАННЫХ ---
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - platform-net
+    restart: unless-stopped
+
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_DATABASE: orders_db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-scripts/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - platform-net
+    restart: unless-stopped
+
+  postgres-monitor-db:
+    image: postgres:15-alpine
+    container_name: postgres-monitor-db
+    environment:
+      POSTGRES_DB: monitor_db
+      POSTGRES_USER: monitor_user
+      POSTGRES_PASSWORD: pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-monitor-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U monitor_user -d monitor_db"]
+      interval: 5s
+    networks:
+      - platform-net
+
+  redis-cache:
+    image: redis:7-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - platform-net
+
+  # --- ИНФРАСТРУКТУРА: KAFKA ---
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - platform-net
+
+  kafka-broker:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-broker
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka-broker:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - '9092:9092'
+    networks:
+      - platform-net
+
+  # --- AUTH & TOOLS ---
+  keycloak-auth:
+    image: quay.io/keycloak/keycloak:22.0.1
+    container_name: keycloak-auth
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+    ports:
+      - "8080:8080"
+    command: start-dev
+    networks:
+      - platform-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - platform-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - platform-net
+
+  # --- МИКРОСЕРВИСЫ ---
+  data-unifier-service:
+    build: ./data-unifier
+    container_name: data-unifier-service
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker:29092
+      - MYSQL_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/orders_db
+      - MYSQL_DATASOURCE_USERNAME=root
+      - MYSQL_DATASOURCE_PASSWORD=root
+      - POSTGRES_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/users_db
+      - POSTGRES_DATASOURCE_USERNAME=postgres
+      - POSTGRES_DATASOURCE_PASSWORD=postgres
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      mysql-db:
+        condition: service_healthy
+      kafka-broker:
+        condition: service_started
+    networks:
+      - platform-net
+    restart: always
+
+  reactor-adapter-service:
+    build: ./reactor-adapter-kit
+    container_name: reactor-adapter-service
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker:29092
+    depends_on:
+      kafka-broker:
+        condition: service_started
+    networks:
+      - platform-net
+    restart: unless-stopped
+
+  monitoring-service:
+    build: ./dmonitorapp
+    container_name: monitoring-service
+    ports:
+      - "8083:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres-monitor-db:5432/monitor_db
+      - SPRING_R2DBC_USERNAME=monitor_user
+      - SPRING_R2DBC_PASSWORD=pass
+    depends_on:
+      postgres-monitor-db:
+        condition: service_healthy
+    networks:
+      - platform-net
+    restart: unless-stopped
+
+  gateway-service:
+    build: ./gateway-service
+    container_name: gateway-service
+    ports:
+      - "8088:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_REDIS_HOST=redis-cache
+      - SPRING_REDIS_PORT=6379
+      - MONITORING_SERVICE_URL=http://monitoring-service:8080
+      - DATA_UNIFIER_SERVICE_URL=http://data-unifier-service:8080
+      - REACTOR_ADAPTER_URL=http://reactor-adapter-service:8080
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak-auth:8080/realms/master
+    depends_on:
+      redis-cache:
+        condition: service_started
+      keycloak-auth:
+        condition: service_started
+    networks:
+      - platform-net
+    restart: unless-stopped
+
+networks:
+  platform-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mysql_data:
+  postgres-monitor-data:
+  prometheus_data:
+  grafana_data:

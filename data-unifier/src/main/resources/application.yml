@@ -1,0 +1,89 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  kafka:
+    topic:
+      unified-customers: ${KAFKA_TOPIC_CUSTOMERS:unified-customers}
+      unified-orders: ${KAFKA_TOPIC_ORDERS:unified-orders}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus"
+  endpoint:
+    prometheus:
+      enabled: true
+  health:
+    show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+spring:
+  application:
+    name: data-unifier
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: ${SHOW_SQL:false}
+    open-in-view: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: data-unifier-group-${spring.profiles.active}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+logging:
+  level:
+    com.pashcevich.data_unifier: ${LOG_LEVEL:DEBUG}
+    org.springframework.kafka: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  mysql:
+    datasource:
+      url: ${MYSQL_DATASOURCE_URL:jdbc:mysql://localhost:3306/order_db}
+      username: ${MYSQL_DATASOURCE_USERNAME:root}
+      password: ${MYSQL_DATASOURCE_PASSWORD:root}
+  postgres:
+    datasource:
+      url: ${POSTGRES_DATASOURCE_URL:jdbc:postgresql://localhost:5432/users_db}
+      username: ${POSTGRES_DATASOURCE_USERNAME:postgres}
+      password: ${POSTGRES_DATASOURCE_PASSWORD:postgres}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  mysql:
+    datasource:
+      # ИСПРАВЛЕНО: имя сервиса из твоего compose - mysql-db
+      url: ${MYSQL_DATASOURCE_URL:jdbc:mysql://mysql-db:3306/orders_db}
+      username: ${MYSQL_DATASOURCE_USERNAME:root}
+      password: ${MYSQL_DATASOURCE_PASSWORD:root}
+  postgres:
+    datasource:
+      # ИСПРАВЛЕНО: имя сервиса из твоего compose - postgres-db
+      url: ${POSTGRES_DATASOURCE_URL:jdbc:postgresql://postgres-db:5432/users_db}
+      username: ${POSTGRES_DATASOURCE_USERNAME:postgres}
+      password: ${POSTGRES_DATASOURCE_PASSWORD:postgres}
+  kafka:
+    # ИСПРАВЛЕНО: используем внутренний порт 29092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka-broker:29092}
