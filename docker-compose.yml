@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # --- БАЗЫ ДАННЫХ ---
   postgres-data:
     image: postgres:15-alpine
     container_name: postgres-data-db
@@ -20,8 +21,6 @@ services:
     networks:
       - platform-net
 
-
-
   mysql-orders:
     image: mysql:8.0
     container_name: mysql-orders-db
@@ -39,40 +38,6 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "app_user", "-ppassword"]
       interval: 5s
       timeout: 5s
-      retries: 5
-    networks:
-      - platform-net
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
-      interval: 5s
-      retries: 5
-    networks:
-      - platform-net
-
-  kafka:
-    image: confluentinc/cp-kafka:7.4.0
-    container_name: kafka-broker
-    depends_on:
-      zookeeper:
-        condition: service_healthy
-    environment:
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka-broker:29092
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    ports:
-      - "9092:9092"
-    healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 10s
       retries: 5
     networks:
       - platform-net
@@ -100,6 +65,43 @@ services:
     networks:
       - platform-net
 
+  # --- ИНФРАСТРУКТУРА (Kafka & Zookeeper) ---
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 5s
+      retries: 5
+    networks:
+      - platform-net
+
+  kafka: # Ключ сервиса для depends_on
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka-broker
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # ИСПРАВЛЕНО: Рекламируем себя как kafka-broker для внутренней сети
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka-broker:29092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      retries: 5
+    networks:
+      - platform-net
+
+  # --- AUTH & MONITORING TOOLS ---
   keycloak:
     image: quay.io/keycloak/keycloak:22.0.1
     container_name: keycloak-auth
@@ -111,13 +113,13 @@ services:
       - "8080:8080"
     command: start-dev
     healthcheck:
-      # Заменено на проверку сокета, так как curl может отсутствовать
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 10s
       timeout: 5s
       retries: 10
     networks:
       - platform-net
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -135,12 +137,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin # Пароль для входа
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
       - platform-net
 
+  # --- МИКРОСЕРВИСЫ ---
   data-unifier:
     build: ./data-unifier
     container_name: data-unifier-service
@@ -161,7 +164,8 @@ services:
       - postgres.datasource.url=jdbc:postgresql://postgres-data-db:5432/user_db
       - postgres.datasource.username=app_user
       - postgres.datasource.password=password
-      - kafka.bootstrap.servers=kafka:29092
+      # ИСПРАВЛЕНО: Стучимся на kafka-broker
+      - kafka.bootstrap.servers=kafka-broker:29092
     networks:
       - platform-net
     restart: always
@@ -175,7 +179,8 @@ services:
       kafka:
         condition: service_healthy
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      # ИСПРАВЛЕНО: Стучимся на kafka-broker
+      - KAFKA_BOOTSTRAP_SERVERS=kafka-broker:29092
     networks:
       - platform-net
     restart: always
@@ -191,8 +196,8 @@ services:
       data-unifier:
         condition: service_started
     environment:
-      SPRING_R2DBC_URL: r2dbc:postgresql://postgres-monitor-db:5432/monitor_db
-      MONITORED_SERVICES: "data-unifier-service:8081,reactor-adapter-service:8082"
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres-monitor-db:5432/monitor_db
+      - MONITORED_SERVICES=data-unifier-service:8081,reactor-adapter-service:8082
     networks:
       - platform-net
 
@@ -210,10 +215,10 @@ services:
       keycloak:
         condition: service_started
     environment:
-      SPRING_REDIS_HOST: redis-cache
-      SPRING_REDIS_PORT: 6379
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://keycloak-auth:8080/realms/master"
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://keycloak-auth:8080/realms/master/protocol/openid-connect/certs"
+      - SPRING_REDIS_HOST=redis-cache
+      - SPRING_REDIS_PORT=6379
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://keycloak-auth:8080/realms/master
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak-auth:8080/realms/master/protocol/openid-connect/certs
     networks:
       - platform-net
 
